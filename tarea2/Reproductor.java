@@ -1,70 +1,3 @@
-//package tarea2;
-//
-//import javazoom.jlgui.basicplayer.BasicPlayer;
-//import java.io.File;
-//import java.util.Timer;
-//import java.util.TimerTask;
-//
-//public class Reproductor {
-//
-//    private BasicPlayer player;
-//
-//    Reproductor(){
-//        player = new BasicPlayer();
-//    }
-//
-//    public void Play() throws Exception {
-//        player.play();
-//    }
-//
-//    public void AbrirFichero(String ruta) throws Exception {
-//        player.open(new File(ruta));
-//    }
-//
-//    public void Pausa() throws Exception {
-//        player.pause();
-//    }
-//
-//    public void Continuar() throws Exception {
-//        player.resume();
-//    }
-//
-//    public void Stop() throws Exception {
-//        player.stop();
-//    }
-//
-//    public static void main(String args[]){
-//        try {
-//            Reproductor mi_reproductor = new Reproductor();
-//            mi_reproductor.AbrirFichero("metallica.mp3");
-//            mi_reproductor.Play();
-//            String st = "Se cumplieron 5 segundos";
-//            mi_reproductor.new Reminder(5000, st);
-//        } catch (Exception ex) {
-//            System.out.println("Error: " + ex.getMessage());
-//        }
-//    }
-//
-//
-//    public class Reminder {
-//        Timer timer;
-//        String texto;
-//
-//        public Reminder(long seconds, String texto) {
-//            this.texto = texto;
-//            timer = new Timer();
-//            timer.schedule(new RemindTask(), seconds); //5000 milisegundos = 5 segundos
-//        }
-//
-//        class RemindTask extends TimerTask {
-//            public void run() { //se ejecuta solo cuando se cumple el tiempo
-//                System.out.println(texto);
-//            }
-//        }
-//    }
-//
-//}
-
 package tarea2;
 
 import javazoom.jlgui.basicplayer.BasicPlayer;
@@ -118,7 +51,7 @@ public class Reproductor {
 
             // 1. PASO COMPILADOR: Leer y parsear el archivo LRC de la letra
             // RECUERDA: Modifica esta ruta por la de tu computadora
-            String rutaLrc = "Rick Astley - Never Gonna Give You Up.lrc";
+            String rutaLrc = "The Weeknd - Blinding Lights.lrc";
 
             FileReader fileReader = new FileReader(rutaLrc);
             PushbackReader pushbackReader = new PushbackReader(fileReader, 1024);
@@ -133,16 +66,19 @@ public class Reproductor {
             LrcVisitor miVisitador = new LrcVisitor();
             tree.apply(miVisitador);
 
+            // 2. MOSTRAR METADATOS: Imprimir el título y el artista extraídos del archivo LRC
+            System.out.println("Canción: " + miVisitador.titulo);
+            System.out.println("Artista: " + miVisitador.artista);
             System.out.println("[Parser] -> Letras cargadas en memoria: " + miVisitador.listaLetras.size() + " líneas.");
 
-            // 2. PASO AUDIO: Inicializar el reproductor MP3
+            // 3. PASO AUDIO: Inicializar el reproductor MP3
             Reproductor mi_reproductor = new Reproductor();
 
             // RECUERDA: Modifica esta ruta por la de tu archivo de audio MP3
-            String rutaMp3 = "Never Gonna Give You Up.mp3";
+            String rutaMp3 = "The Weeknd - Blinding Lights.mp3";
             mi_reproductor.AbrirFichero(rutaMp3);
 
-            // 3. PASO SINCRO: Dar Play e inmediatamente programar las alarmas (Timers)
+            // 4. PASO SINCRO: Dar Play e inmediatamente programar las alarmas (Timers)
             System.out.println("[Audio]  -> Reproduciendo música...");
             System.out.println("=================================================\n");
 
@@ -160,8 +96,6 @@ public class Reproductor {
         }
     }
 
-    // --- CLASE INTERNA REMINDER (ADAPTADA) ---
-    // Estudia esta clase con atención: es la encargada de la sincronización
     public class Reminder {
         Timer timer;
         String texto;

@@ -10,7 +10,7 @@ public class Analizer {
     public static void main(String[] arguments) {
         try {
             // 1. Cargamos el archivo .lrc de ejemplo
-            FileReader fileReader = new FileReader("Rick Astley - Never Gonna Give You Up.lrc");
+            FileReader fileReader = new FileReader("The Weeknd - Blinding Lights.lrc");
             PushbackReader pushbackReader = new PushbackReader(fileReader, 1024);
 
             // 2. Instanciamos el Lexer y el Parser generados en el paquete tarea2
