@@ -8,6 +8,7 @@ import tarea2.node.Start;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -21,13 +22,17 @@ public class ReproductorGUI extends JFrame {
     // --- COMPONENTES DE LA INTERFAZ GRÁFICA ---
     private JLabel lblTitulo;
     private JLabel lblArtista;
-    private JLabel lblLetras;
+    private JLabel lblPrevia;     // Subtítulo que ya pasó (Gris oscuro)
+    private JLabel lblActiva;     // Subtítulo actual (Verde Karaoke)
+    private JLabel lblSiguiente;  // Subtítulo que viene (Gris claro)
+//    private JLabel lblLetras; se cambio por 3 partes de letra
     private JProgressBar pbTiempo;
     private JButton btnCargar, btnStop, btnPlay, btnPause;
 
     // --- LÓGICA DE AUDIO Y COMPILADORES ---
     private BasicPlayer player;
     private ArrayList<LineaLetra> letrasActuales;
+    private JSlider sliderVolumen;
 
     // --- VARIABLES DE CONTROL DE TIEMPO (SINCRONIZACIÓN) ---
     private Timer uiTimer;               // Reloj de la interfaz gráfica (Swing Timer)
@@ -78,12 +83,29 @@ public class ReproductorGUI extends JFrame {
         JPanel panelCenter = new JPanel(new BorderLayout());
         panelCenter.setBackground(colorFondo);
 
-        lblLetras = new JLabel("Selecciona una canción para comenzar", SwingConstants.CENTER);
-        lblLetras.setFont(new Font("SansSerif", Font.BOLD, 34));
-        lblLetras.setForeground(colorLetraKaraoke);
-        panelCenter.add(lblLetras, BorderLayout.CENTER);
+        //Subpanel en cuadrícula para apilar las 3 líneas
+        JPanel panelLetrasStack = new JPanel(new GridLayout(3, 1, 10, 10));
+        panelLetrasStack.setBackground(colorFondo);
 
-        // 6. CONSTRUIR PANEL INFERIOR: Barra de progreso y botonera de control
+        lblPrevia = new JLabel("", SwingConstants.CENTER);
+        lblPrevia.setFont(new Font("SansSerif", Font.PLAIN, 18));
+        lblPrevia.setForeground(Color.DARK_GRAY); // Opacado por defecto
+
+        lblActiva = new JLabel("Selecciona una canción para comenzar", SwingConstants.CENTER);
+        lblActiva.setFont(new Font("SansSerif", Font.BOLD, 30));
+        lblActiva.setForeground(colorLetraKaraoke); // Destacado verde brillante
+
+        lblSiguiente = new JLabel("", SwingConstants.CENTER);
+        lblSiguiente.setFont(new Font("SansSerif", Font.PLAIN, 18));
+        lblSiguiente.setForeground(Color.LIGHT_GRAY); // Semitransparente
+
+        panelLetrasStack.add(lblPrevia);
+        panelLetrasStack.add(lblActiva);
+        panelLetrasStack.add(lblSiguiente);
+
+        panelCenter.add(panelLetrasStack, BorderLayout.CENTER);
+
+        // 6. CONSTRUIR PANEL INFERIOR: Barra de progreso, deslizador de volumen y botonera de control
         JPanel panelBottom = new JPanel(new BorderLayout());
         panelBottom.setBackground(colorFondo);
         panelBottom.setBorder(BorderFactory.createEmptyBorder(10, 30, 30, 30));
@@ -93,6 +115,19 @@ public class ReproductorGUI extends JFrame {
         pbTiempo.setStringPainted(true);
         pbTiempo.setForeground(colorLetraKaraoke);
         pbTiempo.setBackground(Color.DARK_GRAY);
+
+        //Panel intermedio para el volumen a la izquierda de los botones
+        JPanel panelControlesCentralizados = new JPanel(new BorderLayout());
+        panelControlesCentralizados.setBackground(colorFondo);
+
+        // Configuración estética del control de volumen
+        sliderVolumen = new JSlider(JSlider.HORIZONTAL, 0, 100, 100); // Inicia en 100%
+        sliderVolumen.setPreferredSize(new Dimension(150, 40));
+        sliderVolumen.setBackground(colorFondo);
+        sliderVolumen.setForeground(colorTextoBlanco);
+        sliderVolumen.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(Color.DARK_GRAY), "Volumen",
+                0, 0, new Font("SansSerif", Font.PLAIN, 10), colorTextoBlanco));
 
         // Configuración de los botones contenedores
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
@@ -107,14 +142,18 @@ public class ReproductorGUI extends JFrame {
         panelBotones.add(btnStop);
         panelBotones.add(btnPlay);
         panelBotones.add(btnPause);
-
+        //Empaquetamos los botones
+        panelControlesCentralizados.add(sliderVolumen, BorderLayout.WEST);
+        panelControlesCentralizados.add(panelBotones, BorderLayout.CENTER);
+        //Añadimos los botones en el GUI a la parte inferior
         panelBottom.add(pbTiempo, BorderLayout.NORTH);
-        panelBottom.add(panelBotones, BorderLayout.CENTER);
+        panelBottom.add(panelControlesCentralizados, BorderLayout.CENTER);
 
         // 7. Ensamblar todas las secciones en el panel raíz
         panelMain.add(panelTop, BorderLayout.NORTH);
         panelMain.add(panelCenter, BorderLayout.CENTER);
         panelMain.add(panelBottom, BorderLayout.SOUTH);
+        setContentPane(panelMain);
 
         // 8. Activar los controladores de acciones y el reloj de sincronización
         configurarEventos();
@@ -141,38 +180,72 @@ public class ReproductorGUI extends JFrame {
         btnPlay.addActionListener(e -> reproducir());
         btnPause.addActionListener(e -> pausar());
         btnStop.addActionListener(e -> detener());
+
+        // Escuchador dinámico para controlar la ganancia de BasicPlayer nativamente
+        sliderVolumen.addChangeListener(e -> {
+            try {
+                if (player != null) {
+                    double gananciaDecimal = sliderVolumen.getValue() / 100.0;
+                    player.setGain(gananciaDecimal); // Transfiere el valor (0.0 a 1.0) al core de audio
+                }
+            } catch (BasicPlayerException ex) {
+                ex.printStackTrace();
+            }
+        });
     }
+
 
     // --- RELOJ INTERNO DE LA INTERFAZ GRÁFICA ---
     private void inicializarRelojSincronizador() {
-        // Creamos un temporizador que "late" cada 100 milisegundos para refrescar la pantalla
         uiTimer = new Timer(100, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (isPlaying) {
-                    // 1. Calcular el tiempo actual exacto sumando lo acumulado y el delta actual
+                if (isPlaying && !letrasActuales.isEmpty()) {
+                    // 1. Obtener la marca cronológica absoluta
                     long tiempoActualMs = totalPlayedTime + (System.currentTimeMillis() - lastResumeTime);
 
-                    // 2. Actualizar el porcentaje de la barra de progreso
+                    // 2. Refrescar timeline
                     int progreso = (int) ((tiempoActualMs * 100) / duracionTotalMs);
                     pbTiempo.setValue(Math.min(progreso, 100));
 
-                    // 3. Buscar de manera secuencial qué letra corresponde al milisegundo actual
-                    String letraVisible = "";
-                    for (LineaLetra linea : letrasActuales) {
-                        if (tiempoActualMs >= linea.tiempoMs) {
-                            letraVisible = linea.texto;
+                    // 3. Algoritmo de extracción por triple índice secuencial
+                    int indiceActivo = -1;
+                    for (int i = 0; i < letrasActuales.size(); i++) {
+                        if (tiempoActualMs >= letrasActuales.get(i).tiempoMs) {
+                            indiceActivo = i; // Guarda el índice de la última frase que ya debió sonar
                         } else {
-                            // Al estar ordenadas cronológicamente, si pasamos el tiempo actual, rompemos el ciclo
                             break;
                         }
                     }
 
-                    // 4. Pintar el resultado en el JLabels del centro
-                    if (letraVisible.isEmpty()) {
-                        lblLetras.setText("♪ ... (Instrumental) ... ♪");
+                    // 4. Mapear y pintar los textos Pasado, Presente y Futuro
+                    if (indiceActivo != -1) {
+                        // --- LÍNEA ACTUAL ---
+                        String textoActivo = letrasActuales.get(indiceActivo).texto;
+                        lblActiva.setText(textoActivo.isEmpty() ? "♪ ... (Instrumental) ... ♪" : textoActivo);
+
+                        // --- LÍNEA PREVIA (Si existe un índice anterior) ---
+                        if (indiceActivo > 0) {
+                            String textoPrevio = letrasActuales.get(indiceActivo - 1).texto;
+                            lblPrevia.setText(textoPrevio.isEmpty() ? "♪ ♪ ♪" : textoPrevio);
+                        } else {
+                            lblPrevia.setText(""); // Si es la primera frase, arriba no se muestra nada
+                        }
+
+                        // --- LÍNEA SIGUIENTE (Si hay más elementos adelante) ---
+                        if (indiceActivo < letrasActuales.size() - 1) {
+                            String textoFuturo = letrasActuales.get(indiceActivo + 1).texto;
+                            lblSiguiente.setText(textoFuturo.isEmpty() ? "♪ ♪ ♪" : textoFuturo);
+                        } else {
+                            lblSiguiente.setText(""); // Si llegamos al final, abajo queda libre
+                        }
                     } else {
-                        lblLetras.setText(letraVisible);
+                        // Estado inicial antes de la primera estrofa
+                        lblPrevia.setText("");
+                        lblActiva.setText("♪ ... (Introducción) ... ♪");
+                        if (!letrasActuales.isEmpty()) {
+                            lblSiguiente.setText(letrasActuales.get(0).texto);
+                        }
                     }
                 }
             }
@@ -231,7 +304,7 @@ public class ReproductorGUI extends JFrame {
                     cargarLetraConSableCC(lrcFile);
                     player.open(mp3File);
 
-                    lblLetras.setText("¡Listo para reproducir!");
+                    lblActiva.setText("¡Listo para reproducir!");
                     detener(); // Reseteamos la barra de tiempo y los contadores
                 } else {
                     JOptionPane.showMessageDialog(this,
@@ -244,6 +317,7 @@ public class ReproductorGUI extends JFrame {
             }
         }
     }
+
 
     // Método que encapsula el análisis sintáctico y semántico del compilador
     private void cargarLetraConSableCC(File lrcFile) throws Exception {
@@ -285,6 +359,9 @@ public class ReproductorGUI extends JFrame {
                 } else {
                     player.resume();
                 }
+                //mantener el volumen que se puede apreciar visualmente en el GUI
+                double volumenActual = sliderVolumen.getValue()/100.0;
+                player.setGain(volumenActual);
 
                 // Guardamos el momento exacto en que se inició/reanudó el audio
                 lastResumeTime = System.currentTimeMillis();
@@ -322,7 +399,7 @@ public class ReproductorGUI extends JFrame {
                 // Reiniciamos todas las variables de control cronológico a cero
                 totalPlayedTime = 0;
                 pbTiempo.setValue(0);
-                lblLetras.setText("...");
+                lblActiva.setText("...");
             }
         } catch (BasicPlayerException ex) {
             ex.printStackTrace();
