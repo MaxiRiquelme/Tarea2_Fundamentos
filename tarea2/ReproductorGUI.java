@@ -1,4 +1,7 @@
 package tarea2;
+//Integrantes:
+//Maximiliano Alejandro Riquelme Baeza
+//Juan Pedro Recabal Rodríguez
 
 import javazoom.jlgui.basicplayer.BasicPlayer;
 import javazoom.jlgui.basicplayer.BasicPlayerException;
