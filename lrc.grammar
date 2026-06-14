@@ -8,45 +8,26 @@ Helpers
   lf = 10;
   space = ' ';
   tab = 9;
-  
-  // Definimos el salto de línea
   eol = cr | lf | cr lf;
-  
-  // Cualquier caracter que no sea un salto de línea
   not_eol = [[all_char - cr] - lf];
-  
-  // Para los metadatos, no queremos el corchete de cierre
   not_bracket_or_eol = [not_eol - ']'];
 
 States
   normal, lyric;
 
 Tokens
-  // Estando en estado NORMAL, si pilla un tag de tiempo, cambia al estado LYRIC
   {normal->lyric} time_tag = '[' digit digit ':' digit digit '.' digit digit ']';
-  
-  // Metadatos como [ar: Metallica] o [length: 06:28]
   {normal} meta_tag = '[' letter+ ':' not_bracket_or_eol* ']';
-  
-  // Los saltos de línea devuelven el lexer al estado NORMAL
   {normal, lyric->normal} eol_tok = eol;
-  
-  // Espacios en blanco (fuera de las letras)
   {normal} blank = (space | tab)+;
-  
-  // El texto de la canción: Estando en LYRIC, atrapa todo hasta el salto de línea
   {lyric} text = not_eol+;
 
 Ignored Tokens
-  // Ignoramos los saltos de línea y espacios en blanco en el parser
-  // para que el árbol sintáctico (AST) sea súper limpio.
   blank, eol_tok;
 
 Productions
-  // Un archivo LRC es simplemente una lista de líneas
   lrc_file = line*;
-
-  // Una línea puede ser un metadato o una letra (tiempo + texto opcional)
+  
   line = 
     {meta} meta_tag |
     {lyric} time_tag text?;
