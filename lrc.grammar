@@ -1,4 +1,4 @@
-Package tarea2;
+Package repmp3;
 
 Helpers
   digit = ['0' .. '9'];
